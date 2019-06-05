@@ -15,7 +15,7 @@ from index import get_tech_words, get_cities_from_techwords, get_points_from_cit
 app = Flask(__name__)
 Bootstrap(app)
 app.secret_key = 'my-secret-key'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.init_app(app)
