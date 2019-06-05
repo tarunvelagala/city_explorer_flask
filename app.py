@@ -1,3 +1,4 @@
+from datetime import date
 import os
 from flask import Flask, render_template, redirect, url_for
 from flask_bootstrap import Bootstrap
@@ -28,11 +29,12 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(80), nullable=False)
     points = db.relationship('Points', backref="user", uselist=False)
     cities = db.relationship('Cities', backref="user")
+    lastday = db.relationship('LoginHistory', backref="user")
 
 
 class Points(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    points = db.Column(db.Integer, nullable=False, default=0)
+    points = db.Column(db.Integer, nullable=False, default=1)
     user_id = db.Column(db.Integer, ForeignKey('user.id'), nullable=False, unique=True)
 
 
@@ -40,6 +42,14 @@ class Cities(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     words = db.Column(db.String, nullable=False)
     cities = db.Column(db.String, nullable=False)
+    user_id = db.Column(db.Integer, ForeignKey('user.id'))
+
+
+class LoginHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    yesterday_point = db.Column(db.Integer, nullable=False)
+    today_point = db.Column(db.Integer, nullable=False)
+    lastday = db.Column(db.Date, nullable=False)
     user_id = db.Column(db.Integer, ForeignKey('user.id'))
 
 
@@ -57,6 +67,11 @@ class RegisterForm(FlaskForm):
 
 class TechKeyForm(FlaskForm):
     techword = StringField('What did you learn today ?', validators=[InputRequired()])
+
+
+@app.before_first_request
+def create_tables():
+    db.create_all()
 
 
 @login_manager.user_loader
@@ -79,6 +94,21 @@ def login():
         if user:
             if check_password_hash(user.password, form.password.data):
                 login_user(user, remember=form.remember.data)
+                # update login point
+                #
+                last = LoginHistory.query.filter(LoginHistory.user_id == user.id,
+                                                 LoginHistory.lastday < date.today()).first()
+                print(last)
+                if last:
+                    s0, s1 = last.yesterday_point, last.today_point
+                    point = Points.query.filter_by(user_id=user.id).first()
+                    print(point)
+                    point.points += last.today_point
+                    last.today_point += s0
+                    last.yesterday_point = s1
+                    last.lastday = date.today()
+                    db.session.commit()
+                # end
                 return redirect(url_for('app_home'))
         error = 'Invalid User. Username doesn\'t exists.'
     return render_template('login.html', form=form, error=error)
@@ -91,8 +121,10 @@ def signup():
         hashed_password = generate_password_hash(form.password.data, method='sha256')
         new_user = User(username=form.username.data, email=form.email.data, password=hashed_password)
         d_point = Points(user=new_user)
+        new_history = LoginHistory(yesterday_point=0, today_point=1, lastday=date.today(), user=new_user)
         db.session.add(new_user)
         db.session.add(d_point)
+        db.session.add(new_history)
         db.session.commit()
         return redirect(url_for('login'))
     return render_template('signup.html', form=form)
