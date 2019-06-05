@@ -15,7 +15,7 @@ from index import get_tech_words, get_cities_from_techwords, get_points_from_cit
 app = Flask(__name__)
 Bootstrap(app)
 app.secret_key = 'my-secret-key'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.init_app(app)
@@ -171,8 +171,10 @@ def app_home():
             d_points = get_points_from_city(r_cities)
             q_points.points += d_points
             db.session.commit()
+    _cities = Cities.query.filter_by(user_id=q_user.id).all()
+    g_cities = [city.cities for city in _cities]
     return render_template('app.html', form=form, points=q_points.points, error=error, username=q_user.username,
-                           cities_explored=r_cities, words=r_words)
+                           cities_explored=g_cities, words=r_words, r_cities=r_cities)
 
 
 @app.route('/logout')

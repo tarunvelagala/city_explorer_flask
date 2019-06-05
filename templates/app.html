@@ -24,19 +24,31 @@
         </div>
         <div>
             <div style="padding-top: 40px">
-                {% if cities_explored is not none %}
-                    {% if cities_explored | length > 0 %}
+                {% if r_cities is not none %}
+                    {% if r_cities | length > 0 %}
                         <ul class="list-inline">
                             <p>Yay You have explored: </p>
-                            {% for city in cities_explored %}
+                            {% for city in r_cities %}
                                 <li class="list-inline-item text-success">{{ city }}</li>
                             {% endfor %}
                         </ul>
                     {% else %}
                         {% if words | length == 0 %}
-                            <p>Seems like you have added that words.</p>
+                            <p class="text-danger">Seems like you have added that words.</p>
                         {% endif %}
                     {% endif %}
+                {% endif %}
+            </div>
+            <div style="padding-top:40px">
+                {% if cities_explored %}
+                    <p>Cities Explored: </p><br>
+                    <ul>
+                        {% for city in cities_explored %}
+                            <li class="list-inline-item text-primary">{{ city }}</li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p></p>
                 {% endif %}
             </div>
         </div>
