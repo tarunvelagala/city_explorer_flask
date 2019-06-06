@@ -1,6 +1,6 @@
 from datetime import date
 import os
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, request
 from flask_bootstrap import Bootstrap
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_login import UserMixin
@@ -8,14 +8,15 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from sqlalchemy import ForeignKey
 from werkzeug.security import check_password_hash, generate_password_hash
-from wtforms import StringField, PasswordField, BooleanField
+from wtforms import StringField, PasswordField
 from wtforms.validators import InputRequired, Email, Length
-from index import get_tech_words, get_cities_from_techwords, get_points_from_city
+
+from index import get_tech_words, get_cities_from_techwords, get_points_from_city, vlogins
 
 app = Flask(__name__)
 Bootstrap(app)
 app.secret_key = 'my-secret-key'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['DATABASE_URL']
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.init_app(app)
@@ -56,7 +57,7 @@ class LoginHistory(db.Model):
 class LoginForm(FlaskForm):
     username = StringField('username', validators=[InputRequired(), Length(max=15, min=4)])
     password = PasswordField('Password', validators=[InputRequired(), Length(max=80, min=8)])
-    remember = BooleanField('remember me')
+    # remember = BooleanField('remember me')
 
 
 class RegisterForm(FlaskForm):
@@ -93,7 +94,7 @@ def login():
         user = User.query.filter_by(username=form.username.data).first()
         if user:
             if check_password_hash(user.password, form.password.data):
-                login_user(user, remember=form.remember.data)
+                login_user(user)
                 # update login point
                 #
                 last = LoginHistory.query.filter(LoginHistory.user_id == user.id,
@@ -177,6 +178,29 @@ def app_home():
                            cities_explored=g_cities, words=r_words, r_cities=r_cities)
 
 
+@app.route('/vlogin', methods=['POST', 'GET'])
+def validator_login():
+    form = LoginForm()
+    error = None
+    if form.validate_on_submit():
+        if form.username.data in vlogins.keys():
+            if form.password.data in vlogins.values():
+                return redirect(url_for('validator_page'))
+        error = 'Invalid User. Username doesn\'t exists.'
+    return render_template('validatorlogin.html', form=form, error=error)
+
+
+@app.route('/vpage', methods=['POST', 'GET'])
+def validator_page():
+    users = User.query.join(Points).filter(User.id == Points.user_id).order_by(Points.points.desc()).all()
+    if request.method == 'POST':
+        if request.form['val'] == 'plus':
+            print(1)
+        if request.form['val'] == 'sub':
+            print(2)
+    return render_template('validatorpage.html', users=users)
+
+
 @app.route('/logout')
 @login_required
 def logout():
@@ -185,5 +209,4 @@ def logout():
 
 
 if __name__ == "__main__":
-    app.run()
-
+    app.run(debug=True)

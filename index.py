@@ -25,6 +25,12 @@ keys = {
     'chunks': '2-Amsterdam',
 }
 
+vlogins = {
+    'tactval': 'tactval1234',
+    'tactval1': 'tactval1234',
+    'tactval2': 'tactval1234'
+}
+
 
 def get_tech_words(techkeys):
     _l = set(techkeys) & set(keys)
